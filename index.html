@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visite Virtuelle Mercedes</title>
+  <script src="marzipano.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #pano {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #navigation {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px 25px;
+      border-radius: 50px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    #navigation button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    #navigation button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+    }
+
+    #navigation button:disabled {
+      background: #555;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    #sceneInfo {
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      min-width: 150px;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    #sceneList {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 15px;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      min-width: 200px;
+    }
+
+    #sceneList h3 {
+      color: white;
+      margin-bottom: 15px;
+      font-size: 18px;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .scene-item {
+      color: white;
+      padding: 10px 15px;
+      margin: 5px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 14px;
+    }
+
+    .scene-item:hover {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transform: translateX(-5px);
+    }
+
+    .scene-item.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-weight: 600;
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.5);
+    }
+
+    #sceneList::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #sceneList::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+
+    #sceneList::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="pano"></div>
+
+  <div id="navigation">
+    <button id="prevBtn">← Précédent</button>
+    <div id="sceneInfo"></div>
+    <button id="nextBtn">Suivant →</button>
+  </div>
+
+  <div id="sceneList">
+    <h3>Scènes</h3>
+    <div id="sceneListContent"></div>
+  </div>
+
+  <script>
+    // Liste des scènes dans l'ordre
+    const scenes = [
+      { id: 'scene-01', name: 'Scène 01', image: '01.jpg' },
+      { id: 'scene-02', name: 'Scène 02', image: '02.jpg' },
+      { id: 'scene-03', name: 'Scène 03', image: '03.jpg' },
+      { id: 'scene-04', name: 'Scène 04', image: '04.jpg' },
+      { id: 'scene-05', name: 'Scène 05', image: '05.jpg' },
+      { id: 'scene-06', name: 'Scène 06', image: '06.jpg' },
+      { id: 'scene-07', name: 'Scène 07', image: '07-2.jpg' },
+      { id: 'scene-09', name: 'Scène 09', image: '09-2.jpg' },
+      { id: 'scene-10', name: 'Scène 10', image: '10.jpg' },
+      { id: 'scene-11', name: 'Scène 11', image: '11.jpg' },
+      { id: 'scene-11b', name: 'Scène 11-21', image: '11-21.jpg' },
+      { id: 'scene-12', name: 'Scène 12', image: '12.jpg' },
+      { id: 'scene-13', name: 'Scène 13', image: '13.jpg' },
+      { id: 'scene-14', name: 'Scène 14', image: '14.jpg' },
+      { id: 'scene-15', name: 'Scène 15', image: '15.jpg' },
+      { id: 'scene-16', name: 'Scène 16', image: '16.jpg' },
+      { id: 'scene-17', name: 'Scène 17', image: '17.jpg' },
+      { id: 'scene-18', name: 'Scène 18', image: '18.jpg' },
+      { id: 'scene-19', name: 'Scène 19', image: '19.jpg' },
+      { id: 'scene-20', name: 'Scène 20', image: '20.jpg' },
+      { id: 'scene-21', name: 'Scène 21', image: '21.jpg' },
+      { id: 'scene-22', name: 'Scène 22', image: '22.jpg' },
+      { id: 'scene-23', name: 'Scène 23', image: '23.jpg' },
+      { id: 'scene-24', name: 'Scène 24', image: '24.jpg' },
+      { id: 'scene-25', name: 'Scène 25', image: '25.jpg' },
+      { id: 'scene-26', name: 'Scène 26', image: '26.jpg' },
+      { id: 'scene-26a', name: 'Scène 26a', image: '26a.jpg' },
+      { id: 'scene-26b', name: 'Scène 26b', image: '26b.jpg' },
+      { id: 'scene-26c', name: 'Scène 26c', image: '26c.jpg' },
+      { id: 'scene-26d', name: 'Scène 26d', image: '26d.jpg' },
+      { id: 'scene-26e', name: 'Scène 26e', image: '26e.jpg' },
+      { id: 'scene-26f', name: 'Scène 26f', image: '26f.jpg' },
+      { id: 'scene-26g', name: 'Scène 26g', image: '26g.jpg' },
+      { id: 'scene-26h', name: 'Scène 26h', image: '26h.jpg' },
+      { id: 'scene-26i', name: 'Scène 26i', image: '26i.jpg' },
+      { id: 'scene-26j', name: 'Scène 26j', image: '26j.jpg' },
+      { id: 'scene-27', name: 'Scène 27', image: '27.jpg' },
+      { id: 'scene-28', name: 'Scène 28', image: '28.jpg' },
+      { id: 'scene-29', name: 'Scène 29', image: '29.jpg' },
+      { id: 'scene-30', name: 'Scène 30', image: '30.jpg' },
+      { id: 'scene-30a', name: 'Scène 30a', image: '30a.jpg' },
+      { id: 'scene-30b', name: 'Scène 30b', image: '30b.jpg' },
+      { id: 'scene-31', name: 'Scène 31', image: '31.jpg' },
+      { id: 'scene-32', name: 'Scène 32', image: '32.jpg' },
+      { id: 'scene-32a', name: 'Scène 32a', image: '32a.jpg' },
+      { id: 'scene-32b', name: 'Scène 32b', image: '32b.jpg' },
+      { id: 'scene-32c', name: 'Scène 32c', image: '32c.jpg' },
+      { id: 'scene-32d', name: 'Scène 32d', image: '32d.jpg' },
+      { id: 'scene-32e', name: 'Scène 32e', image: '32e.jpg' },
+      { id: 'scene-32f', name: 'Scène 32f', image: '32f.jpg' },
+      { id: 'scene-32g', name: 'Scène 32g', image: '32g.jpg' },
+      { id: 'scene-33', name: 'Scène 33', image: '33.jpg' },
+      { id: 'scene-34', name: 'Scène 34', image: '34.jpg' },
+      { id: 'scene-36', name: 'Scène 36', image: '36.jpg' },
+      { id: 'scene-37', name: 'Scène 37', image: '37.jpg' },
+      { id: 'scene-38', name: 'Scène 38', image: '38.jpg' },
+      { id: 'scene-39', name: 'Scène 39', image: '39.jpg' },
+      { id: 'scene-40', name: 'Scène 40', image: '40.jpg' },
+      { id: 'scene-41', name: 'Scène 41', image: '41.jpg' },
+      { id: 'scene-42', name: 'Scène 42', image: '42.jpg' },
+      { id: 'scene-43', name: 'Scène 43', image: '43.jpg' },
+      { id: 'scene-44', name: 'Scène 44', image: '44.jpg' },
+      { id: 'scene-45', name: 'Scène 45', image: '45.jpg' },
+      { id: 'scene-46', name: 'Scène 46', image: '46.jpg' },
+      { id: 'scene-46a', name: 'Scène 46a', image: '46a.jpg' },
+      { id: 'scene-47', name: 'Scène 47', image: '47.jpg' },
+      { id: 'scene-48', name: 'Scène 48', image: '48.jpg' },
+      { id: 'scene-r91', name: 'R0020091', image: 'R0020091_HDR-DeNoiseAI-clear.jpg' },
+      { id: 'scene-r92', name: 'R0020092', image: 'R0020092_HDR-DeNoiseAI-clear.jpg' },
+      { id: 'scene-r93', name: 'R0020093', image: 'R0020093_HDR-DeNoiseAI-clear.jpg' },
+      { id: 'scene-r94', name: 'R0020094', image: 'R0020094_HDR-DeNoiseAI-clear.jpg' },
+      { id: 'scene-r113', name: 'R0020113', image: 'R0020113_HDR-DeNoiseAI-clear.jpg' },
+      { id: 'scene-r114', name: 'R0020114', image: 'R0020114_HDR-DeNoiseAI-clear.jpg' },
+      { id: 'scene-r115', name: 'R0020115', image: 'R0020115_HDR-DeNoiseAI-clear.jpg' },
+      { id: 'scene-r116', name: 'R0020116', image: 'R0020116_HDR-DeNoiseAI-clear.jpg' }
+    ];
+
+    let currentSceneIndex = 0;
+    let viewer;
+    let marzipanoScenes = [];
+
+    // Initialiser Marzipano
+    function init() {
+      const panoElement = document.getElementById('pano');
+
+      // Options pour améliorer la rotation et les contrôles
+      const viewerOpts = {
+        controls: {
+          mouseViewMode: 'drag',     // Mode de contrôle à la souris
+          scrollZoom: true            // Zoom avec la molette
+        },
+        stage: {
+          progressive: true           // Chargement progressif pour de meilleures performances
+        }
+      };
+
+      viewer = new Marzipano.Viewer(panoElement, viewerOpts);
+
+      // Configurer les contrôles pour une rotation plus fluide
+      const controls = viewer.controls();
+      controls.registerMethod('scrollZoom', new Marzipano.ScrollZoomControlMethod(3, 'x'));  // Vitesse de zoom
+      controls.registerMethod('drag', new Marzipano.DragControlMethod());  // Contrôle par glissement
+      controls.registerMethod('pinch', new Marzipano.PinchZoomControlMethod());  // Zoom tactile
+
+      // Créer toutes les scènes
+      scenes.forEach((sceneData, index) => {
+        const source = Marzipano.ImageUrlSource.fromString(sceneData.image);
+        const geometry = new Marzipano.EquirectGeometry([{ width: 4000 }]);
+
+        // Limites de vue plus souples pour une meilleure rotation
+        const limiter = Marzipano.RectilinearView.limit.traditional(
+          8192,  // Résolution maximale
+          120 * Math.PI / 180,  // FOV maximum (120 degrés)
+          100 * Math.PI / 180   // FOV minimum pour le zoom
+        );
+
+        // Vue initiale avec FOV ajusté
+        const view = new Marzipano.RectilinearView(
+          {
+            yaw: 0,           // Direction horizontale initiale
+            pitch: 0,         // Direction verticale initiale (horizon)
+            fov: 90 * Math.PI / 180  // Champ de vision à 90 degrés
+          },
+          limiter
+        );
+
+        const scene = viewer.createScene({
+          source: source,
+          geometry: geometry,
+          view: view,
+          pinFirstLevel: true
+        });
+
+        marzipanoScenes.push({
+          ...sceneData,
+          scene: scene
+        });
+      });
+
+      // Afficher la première scène
+      switchScene(0);
+
+      // Créer la liste des scènes
+      createSceneList();
+
+      // Initialiser les boutons
+      setupNavigation();
+    }
+
+    function switchScene(index) {
+      if (index < 0 || index >= marzipanoScenes.length) return;
+
+      currentSceneIndex = index;
+      const sceneData = marzipanoScenes[index];
+
+      sceneData.scene.switchTo({
+        transitionDuration: 1000
+      });
+
+      updateUI();
+    }
+
+    function updateUI() {
+      // Mettre à jour l'info de scène
+      document.getElementById('sceneInfo').textContent =
+        `${marzipanoScenes[currentSceneIndex].name} (${currentSceneIndex + 1}/${marzipanoScenes.length})`;
+
+      // Mettre à jour les boutons
+      document.getElementById('prevBtn').disabled = currentSceneIndex === 0;
+      document.getElementById('nextBtn').disabled = currentSceneIndex === marzipanoScenes.length - 1;
+
+      // Mettre à jour la liste des scènes
+      document.querySelectorAll('.scene-item').forEach((item, index) => {
+        if (index === currentSceneIndex) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+
+    function createSceneList() {
+      const listContent = document.getElementById('sceneListContent');
+      marzipanoScenes.forEach((sceneData, index) => {
+        const item = document.createElement('div');
+        item.className = 'scene-item';
+        item.textContent = sceneData.name;
+        item.onclick = () => switchScene(index);
+        listContent.appendChild(item);
+      });
+    }
+
+    function setupNavigation() {
+      document.getElementById('prevBtn').onclick = () => {
+        if (currentSceneIndex > 0) {
+          switchScene(currentSceneIndex - 1);
+        }
+      };
+
+      document.getElementById('nextBtn').onclick = () => {
+        if (currentSceneIndex < marzipanoScenes.length - 1) {
+          switchScene(currentSceneIndex + 1);
+        }
+      };
+
+      // Navigation au clavier
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+          if (currentSceneIndex > 0) switchScene(currentSceneIndex - 1);
+        } else if (e.key === 'ArrowRight') {
+          if (currentSceneIndex < marzipanoScenes.length - 1) switchScene(currentSceneIndex + 1);
+        }
+      });
+    }
+
+    // Démarrer l'application
+    window.onload = init;
+  </script>
+</body>
+</html>
